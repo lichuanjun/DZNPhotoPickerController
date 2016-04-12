@@ -1,16 +1,16 @@
-@version = "2.0"
+@version = "2.0.1"
 
 Pod::Spec.new do |s|
   s.name         	  = "DZNPhotoPickerController"
   s.version      	  = @version
   s.summary      	  = "A photo search/picker for iOS using popular providers like 500px, Flickr, Intagram, Google Images, etc."
-  s.description  	  = "This framework tries to mimic as close as possible the native UIImagePickerController API for iOS7, in terms of features, appearance and behaviour."
+  s.description  	  = "This framework tries to mimic as close as possible the native UIImagePickerController API for iOS7, in terms of features, appearance and behaviour.And more,rely on good dzenbot, support roate and tap gesture "
   s.homepage   		  = "https://github.com/dzenbot/DZNPhotoPickerController"
   s.screenshots 	  = "https://raw.githubusercontent.com/dzenbot/DZNPhotoPickerController/master/Docs/screenshots.png"
   s.license     	  = { :type => 'MIT', :file => 'LICENSE' }
-  s.author       	  = { "Ignacio Romero Z." => "iromero@dzen.cl" }
+  s.author       	  = { "lichuanjun" => "lichuanjun1991@gmail.com" }
   
-  s.source       	  = { :git => "https://github.com/dzenbot/UIPhotoPickerController.git", :tag => "v#{s.version}" }
+  s.source       	  = { :git => "https://github.com/lichuanjun/UIPhotoPickerController.git", :tag => "v#{s.version}" }
 
   s.default_subspec = 'Core'
   s.resources       = 'Resources', 'Source/Resources/**/*.*'
