@@ -12,6 +12,7 @@
 
 #define DZN_IS_IPAD [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad
 #define DZN_IS_IOS8 [[UIDevice currentDevice].systemVersion floatValue] > 8.0
+CGFloat degreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
 
 typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
     DZNPhotoAspectUnknown,
@@ -41,9 +42,13 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 @end
 
 @interface DZNPhotoEditorViewController () <UIScrollViewDelegate>
-
+{
+    BOOL imageLandscape;
+    int rotationCount;
+}
 /** An optional UIImage use for displaying the already existing full size image. */
 @property (nonatomic, copy) UIImage *editingImage;
+@property (nonatomic, copy) UIImage *originalSizedImage;
 
 /** The scrollview containing the image for allowing panning and zooming. */
 @property (nonatomic, readonly) UIScrollView *scrollView;
@@ -54,6 +59,7 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 
 /** The last registered zoom scale. */
 @property (nonatomic) CGFloat lastZoomScale;
+@property (nonatomic, readwrite, strong) UIImageView *imageView;
 
 @end
 
@@ -64,8 +70,7 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 @synthesize bottomView = _bottomView;
 @synthesize activityIndicator = _activityIndicator;
 @synthesize cropSize = _cropSize;
-@synthesize rightButton = _rightButton;
-@synthesize leftButton = _leftButton;
+
 
 #pragma mark - Initializer
 
@@ -104,6 +109,10 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 
 #pragma mark - View lifecycle
 
+- (UIStatusBarStyle)preferredStatusBarStyle {
+    return UIStatusBarStyleLightContent;
+}
+
 - (void)loadView
 {
     [super loadView];
@@ -128,10 +137,12 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
     }
     
     [self.view addSubview:self.scrollView];
-    [self.scrollView addSubview:self.imageView];
+    self.scrollView.center = self.view.center;
+    [self addImageViewWithImage:self.originalSizedImage];
+    [self adjustImageViewPosition];
+    
     [self.view addSubview:self.bottomView];
     
-    self.imageView.image = self.editingImage;
     [self.view insertSubview:self.maskView aboveSubview:self.scrollView];
     
     NSDictionary *views = @{@"bottomView": self.bottomView};
@@ -179,6 +190,19 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 	[super viewDidDisappear:animated];
 }
 
+- (void)adjustImageViewPosition {
+    CGPoint center = self.imageView.center;
+    if (imageLandscape) {
+        if ( CGRectGetHeight(self.imageView.frame) <= CGRectGetHeight(_scrollView.frame)) {
+            center.y = CGRectGetHeight(_scrollView.frame)/2;
+        }
+    }else{
+        if ( CGRectGetWidth(self.imageView.frame) <= CGRectGetWidth(_scrollView.frame)) {
+            center.x = CGRectGetWidth(_scrollView.frame)/2;
+        }
+    }
+    self.imageView.center = center;
+}
 
 #pragma mark - Getter methods
 
@@ -186,29 +210,34 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 {
     if (!_scrollView)
     {
-        _scrollView = [[UIScrollView alloc] initWithFrame:self.view.bounds];
-        _scrollView.backgroundColor = [UIColor clearColor];
-        _scrollView.minimumZoomScale = 1.0;
-        _scrollView.maximumZoomScale = 2.0;
+        _scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, self.cropSize.width, self.cropSize.height)];
+        _scrollView.backgroundColor = [UIColor colorWithRed:0xf3/255.0 green:0xf4/255.0 blue:0xf7/255.0 alpha:1.0];
         _scrollView.showsHorizontalScrollIndicator = NO;
         _scrollView.showsVerticalScrollIndicator = NO;
         _scrollView.delegate = self;
+        UITapGestureRecognizer *singleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(singleTapGestureHandle)];
+        singleTap.numberOfTapsRequired = 1;
+        [_scrollView addGestureRecognizer:singleTap];
         
-        [_scrollView setZoomScale:_scrollView.minimumZoomScale];
+        UITapGestureRecognizer *twoTaps = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(twoTapsGestureHandle)];
+        twoTaps.numberOfTapsRequired = 2;
+        [_scrollView addGestureRecognizer:twoTaps];
     }
     return _scrollView;
 }
 
-- (UIImageView *)imageView
+- (void)addImageViewWithImage:(UIImage *)image
 {
-    if (!_imageView)
-    {        
-        _imageView = [[UIImageView alloc] initWithFrame:self.view.bounds];
-        _imageView.contentMode = UIViewContentModeScaleAspectFit;
-        
-        [_imageView addObserver:self forKeyPath:@"image" options:NSKeyValueObservingOptionNew context:nil];
-    }
-    return _imageView;
+    _imageView = [[UIImageView alloc] initWithImage:image];
+    _imageView.contentMode = UIViewContentModeScaleAspectFit;
+    [_imageView addObserver:self forKeyPath:@"image" options:NSKeyValueObservingOptionNew context:nil];
+    _scrollView.minimumZoomScale = 1.0;
+    _scrollView.maximumZoomScale = MAX(CGRectGetWidth([UIScreen mainScreen].bounds) / image.size.width, CGRectGetHeight([UIScreen mainScreen].bounds) / image.size.height);
+    [_scrollView setZoomScale:_scrollView.minimumZoomScale];
+    _scrollView.contentSize = image.size;
+    _scrollView.contentOffset = CGPointZero;
+    _scrollView.contentInset = UIEdgeInsetsZero;
+    [_scrollView addSubview:_imageView];
 }
 
 - (UIImageView *)maskView
@@ -221,24 +250,6 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
     return _maskView;
 }
 
-- (UIButton *)leftButton
-{
-    if (!_leftButton) {
-        _leftButton = [self buttonWithTitle:NSLocalizedString(@"Cancel", nil)];
-        [_leftButton addTarget:self action:@selector(cancelEdition:) forControlEvents:UIControlEventTouchUpInside];
-    }
-    return _leftButton;
-}
-
-- (UIButton *)rightButton
-{
-    if (!_rightButton) {
-        _rightButton = [self buttonWithTitle:NSLocalizedString(@"Choose", nil)];
-        [_rightButton addTarget:self action:@selector(acceptEdition:) forControlEvents:UIControlEventTouchUpInside];
-    }
-    return _rightButton;
-}
-
 - (DZNPhotoEditorContainerView *)bottomView
 {
     if (!_bottomView)
@@ -247,6 +258,14 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
         _bottomView.translatesAutoresizingMaskIntoConstraints = NO;
         _bottomView.tintColor = [UIColor whiteColor];
         _bottomView.userInteractionEnabled = YES;
+        
+        _leftButton = [self buttonWithTitle:NSLocalizedString(@"Cancel", nil)];
+        [_leftButton addTarget:self action:@selector(cancelEdition:) forControlEvents:UIControlEventTouchUpInside];
+        
+        _middleButton = [self buttonWithTitle:NSLocalizedString(@"Rotation", nil)];
+        [_middleButton addTarget:self action:@selector(rotateImage:) forControlEvents:UIControlEventTouchUpInside];
+        _rightButton = [self buttonWithTitle:NSLocalizedString(@"Choose", nil)];
+        [_rightButton addTarget:self action:@selector(acceptEdition:) forControlEvents:UIControlEventTouchUpInside];
         
         NSMutableDictionary *views = [NSMutableDictionary new];
         NSDictionary *metrics = @{@"hmargin" : @(13), @"barsHeight": @(self.barsHeight)};
@@ -261,21 +280,26 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
         else {
             self.leftButton.translatesAutoresizingMaskIntoConstraints = NO;
             self.rightButton.translatesAutoresizingMaskIntoConstraints = NO;
+            self.middleButton.translatesAutoresizingMaskIntoConstraints = NO;
             
             [_bottomView addSubview:self.leftButton];
             [_bottomView addSubview:self.rightButton];
+            [_bottomView addSubview:self.middleButton];
             
             [views setObject:self.leftButton forKey:@"leftButton"];
             [views setObject:self.rightButton forKey:@"rightButton"];
+            [views setObject:self.middleButton forKey:@"middleButton"];
             
             [_bottomView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-hmargin-[leftButton]" options:0 metrics:metrics views:views]];
             [_bottomView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[rightButton]-hmargin-|" options:0 metrics:metrics views:views]];
+            [_bottomView addConstraint:[NSLayoutConstraint constraintWithItem:self.middleButton attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:_bottomView attribute:NSLayoutAttributeCenterX multiplier:1.0 constant:0]];
             
             [_bottomView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[leftButton]|" options:0 metrics:metrics views:views]];
             [_bottomView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[rightButton]|" options:0 metrics:metrics views:views]];
+            [_bottomView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[middleButton]|" options:0 metrics:metrics views:views]];
         }
         
-        if (self.cropMode == DZNPhotoEditorViewControllerCropModeCircular)
+        if (_cropMode == DZNPhotoEditorViewControllerCropModeCircular)
         {
             UILabel *topLabel = [UILabel new];
             topLabel.translatesAutoresizingMaskIntoConstraints = NO;
@@ -345,8 +369,7 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 
 - (CGRect)guideRect
 {
-    CGFloat margin = (CGRectGetHeight(self.navigationController.view.bounds)-self.cropSize.height)/2;
-    return CGRectMake(0.0, margin, self.cropSize.width, self.cropSize.height);
+    return CGRectMake(0.0, 0.0, self.cropSize.width, self.cropSize.height);
 }
 
 - (CGFloat)innerInset
@@ -396,7 +419,6 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
         case DZNPhotoEditorViewControllerCropModeNone:
         case DZNPhotoEditorViewControllerCropModeSquare:
         case DZNPhotoEditorViewControllerCropModeCustom:        return [self squareOverlayMask];
-        case DZNPhotoEditorViewControllerCropModeCircular:      return [self circularOverlayMask];
     }
 }
 
@@ -431,7 +453,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     [clipPath addLineToPoint:CGPointMake(width, margin+height)];
     [clipPath addLineToPoint:CGPointMake(width, CGRectGetHeight(bounds))];
     [clipPath closePath];
-    [[UIColor colorWithWhite:0 alpha:0.5] setFill];
+    [[UIColor colorWithWhite:0.0 alpha:0.5] setFill];
     [clipPath fill];
     
     // Add the square crop
@@ -449,46 +471,6 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
 }
 
 /*
- The circular overlay mask image to be displayed on top of the photo as cropping guideline.
- Created with PaintCode. The source file is available inside of the Resource folder.
- */
-- (UIImage *)circularOverlayMask
-{
-    // Constants
-    CGRect bounds = self.navigationController.view.bounds;
-    
-    CGFloat width = bounds.size.width;
-    CGFloat height = bounds.size.height;
-    
-    CGFloat diameter = width-(self.innerInset*2);
-    CGFloat radius = diameter/2;
-    CGPoint center = CGPointMake(width/2, height/2);
-    
-    if (DZN_IS_IPAD && DZN_IS_IOS8) {
-        center.y += CGRectGetHeight(self.navigationController.navigationBar.frame)/2.0;
-    }
-    
-    // Create the image context
-    UIGraphicsBeginImageContextWithOptions(bounds.size, NO, 0);
-    
-    // Create the bezier paths
-    UIBezierPath *clipPath = [UIBezierPath bezierPathWithRect:bounds];
-    UIBezierPath *maskPath = [UIBezierPath bezierPathWithOvalInRect:CGRectMake(center.x-radius, center.y-radius, diameter, diameter)];
-    
-    [clipPath appendPath:maskPath];
-    clipPath.usesEvenOddFillRule = YES;
-    
-    [clipPath addClip];
-    [[UIColor colorWithWhite:0 alpha:0.5] setFill];
-    [clipPath fill];
-    
-    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-
-    return image;
-}
-
-/*
  The final edited photo rendering.
  */
 - (UIImage *)editedImage
@@ -498,141 +480,13 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     CGRect viewRect = self.navigationController.view.bounds;
     CGRect guideRect = [self guideRect];
     
-    CGFloat verticalMargin = (viewRect.size.height-guideRect.size.height)/2;
-
-    guideRect.origin.x = -self.scrollView.contentOffset.x;
-    guideRect.origin.y = -self.scrollView.contentOffset.y - verticalMargin;
-    
-    if (DZN_IS_IPAD && self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) {
-        guideRect.origin.y -= CGRectGetHeight(self.navigationController.navigationBar.bounds)/2.0;
-    }
-    
     UIGraphicsBeginImageContextWithOptions(guideRect.size, NO, 0);{
-        CGContextRef context = UIGraphicsGetCurrentContext();
-        
-        CGContextTranslateCTM(context, guideRect.origin.x, guideRect.origin.y);
-        [self.scrollView.layer renderInContext:context];
-        
+        [self.scrollView drawViewHierarchyInRect:guideRect afterScreenUpdates:NO];
         image = UIGraphicsGetImageFromCurrentImageContext();
         UIGraphicsEndImageContext();
     }
-    
-    if (self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) {
-        
-        CGFloat diameter = viewRect.size.width-(self.innerInset*2);
-        CGRect circularRect = CGRectMake(0, 0, diameter, diameter);
-        
-        CGFloat increment = 1.0/(((self.innerInset*2)*100.0)/viewRect.size.width);
-        CGFloat scale = 1.0 + round(increment * 10) / 10.0;
-        
-        UIGraphicsBeginImageContextWithOptions(circularRect.size, NO, 0.0);{
-
-            CGContextRef context = UIGraphicsGetCurrentContext();
-            CGContextTranslateCTM(context, -self.innerInset, -self.innerInset);
-            CGContextScaleCTM(context, scale, scale);
-
-            [image drawInRect:circularRect];
-            
-            image = UIGraphicsGetImageFromCurrentImageContext();
-            UIGraphicsEndImageContext();
-        }
-    }
-
     return image;
 }
-
-/**
- Trims the image removing any alpha in its edges.
- Code from http://stackoverflow.com/a/12617031/590010
- */
-- (UIImage *)trimmedImage:(UIImage *)image
-{
-    CGImageRef inImage = image.CGImage;
-    CFDataRef m_DataRef;
-    m_DataRef = CGDataProviderCopyData(CGImageGetDataProvider(inImage));
-    
-    UInt8 * m_PixelBuf = (UInt8 *) CFDataGetBytePtr(m_DataRef);
-    
-    size_t width = CGImageGetWidth(inImage);
-    size_t height = CGImageGetHeight(inImage);
-    
-    CGPoint top,left,right,bottom;
-    
-    BOOL breakOut = NO;
-    for (int x = 0;breakOut==NO && x < width; x++) {
-        for (int y = 0; y < height; y++) {
-            NSInteger loc = x + (y * width);
-            loc *= 4;
-            if (m_PixelBuf[loc + 3] != 0) {
-                left = CGPointMake(x, y);
-                breakOut = YES;
-                break;
-            }
-        }
-    }
-    
-    breakOut = NO;
-    for (int y = 0;breakOut==NO && y < height; y++) {
-        
-        for (int x = 0; x < width; x++) {
-            
-            NSInteger loc = x + (y * width);
-            loc *= 4;
-            if (m_PixelBuf[loc + 3] != 0) {
-                top = CGPointMake(x, y);
-                breakOut = YES;
-                break;
-            }
-            
-        }
-    }
-    
-    breakOut = NO;
-    for (NSInteger y = height-1;breakOut==NO && y >= 0; y--) {
-        
-        for (NSInteger x = width-1; x >= 0; x--) {
-            
-            NSInteger loc = x + (y * width);
-            loc *= 4;
-            if (m_PixelBuf[loc + 3] != 0) {
-                bottom = CGPointMake(x, y);
-                breakOut = YES;
-                break;
-            }
-            
-        }
-    }
-    
-    breakOut = NO;
-    for (NSInteger x = width-1;breakOut==NO && x >= 0; x--) {
-        
-        for (NSInteger y = height-1; y >= 0; y--) {
-            
-            NSInteger loc = x + (y * width);
-            loc *= 4;
-            if (m_PixelBuf[loc + 3] != 0) {
-                right = CGPointMake(x, y);
-                breakOut = YES;
-                break;
-            }
-            
-        }
-    }
-    
-    
-    CGFloat scale = image.scale;
-    
-    CGRect cropRect = CGRectMake(left.x / scale, top.y/scale, (right.x - left.x)/scale, (bottom.y - top.y) / scale);
-    
-    UIGraphicsBeginImageContextWithOptions(cropRect.size, NO, scale);
-    [image drawAtPoint:CGPointMake(-cropRect.origin.x, -cropRect.origin.y) blendMode:kCGBlendModeCopy alpha:1.];
-    
-    UIImage *croppedImage = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-    CFRelease(m_DataRef);
-    return croppedImage;
-}
-
 
 #pragma mark - Setter methods
 
@@ -653,10 +507,79 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     if (self.cropMode == DZNPhotoEditorViewControllerCropModeCustom) {
         NSAssert(!CGSizeEqualToSize(size, CGSizeZero) , @"Expecting a non-zero CGSize for cropMode 'Custom'.");
     }
-    
+    self.editingImage = [self imageWithImage:self.editingImage scaledToFitToSize:size];
+    self.originalSizedImage = self.editingImage;
     _cropSize = size;
 }
 
+- (UIImage *)imageWithImage:(UIImage *)image
+               scaledToSize:(CGSize)newSize
+                     inRect:(CGRect)rect
+{
+    //Determine whether the screen is retina
+    UIGraphicsBeginImageContextWithOptions(newSize, YES, [UIScreen mainScreen].scale);
+    
+    //Draw image in provided rect
+    [image drawInRect:rect];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    
+    //Pop this context
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+
+- (UIImage *)imageWithImage:(UIImage *)image
+          scaledToFitToSize:(CGSize)newSize
+{
+    
+    //Determine the scale factors
+    CGFloat widthScale = newSize.width/image.size.width;
+    CGFloat heightScale = newSize.height/image.size.height;
+    
+    CGFloat scaleFactor;
+    
+    //The smaller scale factor will scale more (0 < scaleFactor < 1) leaving the other dimension inside the newSize rect
+    widthScale < heightScale ? (scaleFactor = widthScale) : (scaleFactor = heightScale);
+    CGSize scaledSize = CGSizeMake(image.size.width * scaleFactor, image.size.height * scaleFactor);
+    
+    //Scale the image
+    return [self imageWithImage:image scaledToSize:scaledSize inRect:CGRectMake(0.0, 0.0, scaledSize.width, scaledSize.height)];
+}
+
+- (UIImage *)imageWithImage:(UIImage *)image scaledWithFactor:(CGFloat)factor {
+    
+    CGSize scaledSize = CGSizeMake(image.size.width * factor, image.size.height * factor);
+    
+    //Scale the image
+    return [self imageWithImage:image scaledToSize:scaledSize inRect:CGRectMake(0.0, 0.0, scaledSize.width, scaledSize.height)];
+}
+
+- (UIImage *)imageRotated:(UIImage *)image byDegrees:(CGFloat)degrees {
+    // calculate the size of the rotated view's containing box for our drawing space
+    UIView *rotatedViewBox = [[UIView alloc] initWithFrame:CGRectMake(0,0,image.size.width, image.size.height)];
+    CGAffineTransform t = CGAffineTransformMakeRotation(degreesToRadians(degrees));
+    rotatedViewBox.transform = t;
+    CGSize rotatedSize = rotatedViewBox.frame.size;
+    
+    // Create the bitmap context
+    UIGraphicsBeginImageContextWithOptions(rotatedSize, YES, [UIScreen mainScreen].scale);
+    CGContextRef bitmap = UIGraphicsGetCurrentContext();
+    
+    // Move the origin to the middle of the image so we will rotate and scale around the center.
+    CGContextTranslateCTM(bitmap, rotatedSize.width/2, rotatedSize.height/2);
+    
+    // Rotate the image context
+    CGContextRotateCTM(bitmap, degreesToRadians(degrees));
+    
+    // Now, draw the rotated/scaled image into the context
+    CGContextScaleCTM(bitmap, 1.0, -1.0);
+    CGContextDrawImage(bitmap, CGRectMake(-image.size.width / 2, -image.size.height / 2, image.size.width, image.size.height), [image CGImage]);
+    
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return newImage;
+}
 
 #pragma mark - DZNPhotoEditorViewController methods
 
@@ -671,7 +594,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     CGFloat maskHeight = (self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) ? self.cropSize.width-(self.innerInset*2) : self.cropSize.height;
     
     CGFloat hInset = (self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) ? self.innerInset : 0.0;
-    CGFloat vInset = fabs((maskHeight-imageSize.height)/2);
+    CGFloat vInset = fabsf((maskHeight-imageSize.height)/2);
     
     if (vInset == 0) vInset = 0.25;
     
@@ -694,8 +617,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     dispatch_queue_t exampleQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
     dispatch_async(exampleQueue, ^{
         
-        UIImage *editedImage = [self trimmedImage:[self editedImage]];
-        
+        UIImage *editedImage = [self editedImage];
         dispatch_queue_t queue = dispatch_get_main_queue();
         dispatch_async(queue, ^{
             
@@ -726,12 +648,42 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     }
 }
 
+- (void)rotateImage:(id)sender
+{
+    rotationCount++;
+    imageLandscape = rotationCount % 2;
+    CGFloat degree = rotationCount % 4 * 90;
+    
+    UIImage *newImage = [self imageRotated:self.originalSizedImage byDegrees:degree];
+    CGFloat factor = imageLandscape ? CGRectGetWidth(_scrollView.frame)/newImage.size.width : CGRectGetHeight(_scrollView.frame)/newImage.size.height;
+    newImage = [self imageWithImage:newImage scaledWithFactor:factor];
+    @autoreleasepool {
+        [_imageView removeObserver:self forKeyPath:@"image" context:nil];
+        [_imageView removeFromSuperview];
+    }
+    
+    [self addImageViewWithImage:newImage];
+    [self adjustImageViewPosition];
+}
+
+- (void)singleTapGestureHandle {
+    _scrollView.zoomScale = _scrollView.minimumZoomScale;
+    _scrollView.contentInset = UIEdgeInsetsZero;
+}
+
+- (void)twoTapsGestureHandle {
+    _scrollView.zoomScale = _scrollView.maximumZoomScale;
+    _scrollView.contentInset = UIEdgeInsetsZero;
+    CGRect frame = self.imageView.frame;
+    frame.origin = CGPointZero;
+    self.imageView.frame = frame;
+}
 
 #pragma mark - UIScrollViewDelegate Methods
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView
 {
-    
+
 }
 
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView
@@ -751,7 +703,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
 
 - (void)scrollViewDidZoom:(UIScrollView *)scrollView
 {
-    
+    [self adjustImageViewPosition];
 }
 
 
@@ -770,9 +722,19 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
 
 #pragma mark - View Auto-Rotation
 
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
+{
+    return NO;
+}
+
 - (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation
 {
     return UIInterfaceOrientationPortrait;
+}
+
+- (NSUInteger)supportedInterfaceOrientations
+{
+    return UIInterfaceOrientationMaskPortrait;
 }
 
 - (BOOL)shouldAutorotate
