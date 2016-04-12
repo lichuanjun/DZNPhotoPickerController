@@ -1,4 +1,4 @@
-@version = "2.0.1"
+@version = "2.0.2"
 
 Pod::Spec.new do |s|
   s.name         	  = "DZNPhotoPickerController"
@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
   s.default_subspec = 'Core'
   s.resources       = 'Resources', 'Source/Resources/**/*.*'
   s.requires_arc 	  = true
-  s.platform        = :ios, '8.0'
+  s.platform        = :ios, '7.0'
 
   s.public_header_files = 'Source/Classes/*/*.h'
 
