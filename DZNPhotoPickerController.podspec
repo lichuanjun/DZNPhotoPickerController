@@ -1,4 +1,4 @@
-@version = "2.0.2"
+@version = "2.0.3"
 
 Pod::Spec.new do |s|
   s.name         	  = "DZNPhotoPickerController"
@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
   s.license     	  = { :type => 'MIT', :file => 'LICENSE' }
   s.author       	  = { "lichuanjun" => "lichuanjun1991@gmail.com" }
   
-  s.source       	  = { :git => "https://github.com/lichuanjun/UIPhotoPickerController.git", :tag => "v#{s.version}" }
+  s.source       	  = { :git => "https://github.com/lichuanjun/DZNPhotoPickerController.git", :tag => "v#{s.version}" }
 
   s.default_subspec = 'Core'
   s.resources       = 'Resources', 'Source/Resources/**/*.*'
