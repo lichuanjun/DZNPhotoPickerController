@@ -32,6 +32,8 @@ typedef void (^DZNPhotoEditorCancelBlock)(DZNPhotoEditorViewController *editor);
 @property (nonatomic, readonly) UIButton *leftButton;
 /** The bottom-right action button. */
 @property (nonatomic, readonly) UIButton *rightButton;
+/** The middle action button. */
+@property (nonatomic, readonly) UIButton *middleButton;
 /** The activity indicator to indicate that the image is being downloaded. */
 @property (nonatomic, readonly) UIActivityIndicatorView *activityIndicator;
 

@@ -121,6 +121,8 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+    self.editingImage = [self imageWithImage:self.editingImage scaledToFitToSize:size];
+    self.originalSizedImage = self.editingImage;
 }
 
 - (void)viewWillLayoutSubviews
@@ -507,8 +509,6 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     if (self.cropMode == DZNPhotoEditorViewControllerCropModeCustom) {
         NSAssert(!CGSizeEqualToSize(size, CGSizeZero) , @"Expecting a non-zero CGSize for cropMode 'Custom'.");
     }
-    self.editingImage = [self imageWithImage:self.editingImage scaledToFitToSize:size];
-    self.originalSizedImage = self.editingImage;
     _cropSize = size;
 }
 
