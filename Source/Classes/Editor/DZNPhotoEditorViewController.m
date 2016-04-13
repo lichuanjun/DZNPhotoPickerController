@@ -121,7 +121,6 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    self.originalSizedImage = [self imageWithImage:self.editingImage scaledToFitToSize:self.cropSize];
 }
 
 - (void)viewWillLayoutSubviews
@@ -419,7 +418,10 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     switch (self.cropMode) {
         case DZNPhotoEditorViewControllerCropModeNone:
         case DZNPhotoEditorViewControllerCropModeSquare:
-        case DZNPhotoEditorViewControllerCropModeCustom:        return [self squareOverlayMask];
+        case DZNPhotoEditorViewControllerCropModeCustom:
+            return [self squareOverlayMask];
+        case DZNPhotoEditorViewControllerCropModeCircular:
+            return nil;
     }
 }
 
@@ -508,6 +510,11 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     if (self.cropMode == DZNPhotoEditorViewControllerCropModeCustom) {
         NSAssert(!CGSizeEqualToSize(size, CGSizeZero) , @"Expecting a non-zero CGSize for cropMode 'Custom'.");
     }
+    if (CGSizeEqualToSize(size, CGSizeZero)) {
+        CGFloat width = (!DZN_IS_IPAD) ? self.view.bounds.size.width : self.navigationController.preferredContentSize.width;
+        size = CGSizeMake(width, width);
+    }
+    self.originalSizedImage = [self imageWithImage:self.editingImage scaledToFitToSize:size];
     _cropSize = size;
 }
 
