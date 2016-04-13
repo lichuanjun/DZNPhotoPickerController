@@ -121,8 +121,7 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    self.editingImage = [self imageWithImage:self.editingImage scaledToFitToSize:self.cropSize];
-    self.originalSizedImage = self.editingImage;
+    self.originalSizedImage = [self imageWithImage:self.editingImage scaledToFitToSize:self.cropSize];
 }
 
 - (void)viewWillLayoutSubviews
