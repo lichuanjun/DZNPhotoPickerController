@@ -1,4 +1,4 @@
-@version = "2.0.7"
+@version = "2.0.8"
 
 Pod::Spec.new do |s|
   s.name         	  = "DZNPhotoPickerController"
@@ -38,7 +38,7 @@ Pod::Spec.new do |s|
 
   s.subspec 'Editor' do |ss|
     ss.source_files = 'Source/Classes/Editor/*.{h,m}',
-                      'Source/Resources/EditorAssets.xcassets',
+                      'Source/Resources/*/*.*',
                       'Source/Classes/Core/DZNPhotoPickerControllerConstants.{h,m}'
   end
   
