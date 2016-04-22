@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
   s.license     	  = { :type => 'MIT', :file => 'LICENSE' }
   s.author       	  = { "lichuanjun" => "lichuanjun1991@gmail.com" }
   
-  s.source       	  = { :git => "https://github.com/lichuanjun/DZNPhotoPickerController.git", :commit => "0c1f4d9b588eb5e1facd97a6ad0b8dfab7ab93a6" }
+  s.source       	  = { :git => "https://github.com/lichuanjun/DZNPhotoPickerController.git", :commit => "ed94006870088e7c79cab6dbf7c2d7aba22d3cc3" }
 
   s.default_subspec = 'Core'
   s.resources       = 'Resources', 'Source/Resources/**/*.*'
