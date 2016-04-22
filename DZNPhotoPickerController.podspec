@@ -1,4 +1,4 @@
-@version = "2.0.8"
+@version = "2.0.9"
 
 Pod::Spec.new do |s|
   s.name         	  = "DZNPhotoPickerController"
@@ -13,7 +13,7 @@ Pod::Spec.new do |s|
   s.source       	  = { :git => "https://github.com/lichuanjun/DZNPhotoPickerController.git", :commit => "ed94006870088e7c79cab6dbf7c2d7aba22d3cc3" }
 
   s.default_subspec = 'Core'
-  s.resources       = 'Resources', 'Source/Resources/**/*.*'
+  s.resources       = 'Resources', 'Source/Resources/*'
   s.requires_arc 	  = true
   s.platform        = :ios, '7.0'
 
@@ -38,7 +38,7 @@ Pod::Spec.new do |s|
 
   s.subspec 'Editor' do |ss|
     ss.source_files = 'Source/Classes/Editor/*.{h,m}',
-                      'Source/Resources/*/*.*',
+                      'Source/Resources/*',
                       'Source/Classes/Core/DZNPhotoPickerControllerConstants.{h,m}'
   end
   
