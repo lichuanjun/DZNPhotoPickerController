@@ -149,7 +149,7 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 - (void)viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
-
+    
     if (!DZN_IS_IPAD) {
         [self.navigationController setNavigationBarHidden:YES animated:YES];
     }
@@ -170,7 +170,7 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 
 - (void)viewWillDisappear:(BOOL)animated
 {
-	[super viewWillDisappear:animated];
+    [super viewWillDisappear:animated];
     
     if (!DZN_IS_IPAD) {
         [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:UIStatusBarAnimationNone];
@@ -180,7 +180,7 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 
 - (void)viewDidDisappear:(BOOL)animated
 {
-	[super viewDidDisappear:animated];
+    [super viewDidDisappear:animated];
 }
 
 #pragma mark - Getter methods
@@ -220,12 +220,19 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
         _bottomView.tintColor = [UIColor whiteColor];
         _bottomView.userInteractionEnabled = YES;
         
-        _leftButton = [self buttonWithTitle:NSLocalizedString(@"Cancel", nil)];
+        //        _leftButton = [self buttonWithTitle:NSLocalizedString(@"Cancel", nil)];
+        _leftButton = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_leftButton setImage:[UIImage imageNamed:@"DZNImageCancel"] forState:UIControlStateNormal];
         [_leftButton addTarget:self action:@selector(cancelEdition:) forControlEvents:UIControlEventTouchUpInside];
         
-        _middleButton = [self buttonWithTitle:NSLocalizedString(@"Rotation", nil)];
+        //        _middleButton = [self buttonWithTitle:NSLocalizedString(@"Rotation", nil)];
+        _middleButton = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_middleButton setImage:[UIImage imageNamed:@"DZNImageRotate"] forState:UIControlStateNormal];
         [_middleButton addTarget:self action:@selector(rotateImage:) forControlEvents:UIControlEventTouchUpInside];
-        _rightButton = [self buttonWithTitle:NSLocalizedString(@"Choose", nil)];
+        
+        //        _rightButton = [self buttonWithTitle:NSLocalizedString(@"Choose", nil)];
+        _rightButton = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_rightButton setImage:[UIImage imageNamed:@"DZNImageSelect"] forState:UIControlStateNormal];
         [_rightButton addTarget:self action:@selector(acceptEdition:) forControlEvents:UIControlEventTouchUpInside];
         
         NSMutableDictionary *views = [NSMutableDictionary new];
@@ -235,7 +242,7 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
             if (self.navigationController.viewControllers.count == 1) {
                 self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:self.leftButton];
             }
-
+            
             self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:self.rightButton];
         }
         else {
@@ -278,7 +285,7 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
     }
     return _bottomView;
 }
-    
+
 - (UIActivityIndicatorView *)activityIndicator
 {
     if (!_activityIndicator)
@@ -387,7 +394,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     
     // Create the image context
     UIGraphicsBeginImageContextWithOptions(bounds.size, NO, 0);
-
+    
     // Create the bezier path & drawing
     UIBezierPath *clipPath = [UIBezierPath bezierPath];
     [clipPath moveToPoint:CGPointMake(width, margin)];
@@ -576,7 +583,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     UIImage *newImage = [self imageRotated:self.editingImage byDegrees:degree];
     CGFloat factor = imageLandscape ? _cropSize.width/newImage.size.width : _cropSize.height/newImage.size.height;
     newImage = [UIImage imageWithData:UIImagePNGRepresentation(newImage) scale:factor];
-   
+    
     [_scrollView displayImage:newImage];
 }
 
