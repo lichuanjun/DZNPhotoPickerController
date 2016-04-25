@@ -1,4 +1,4 @@
-@version = "2.1.2"
+@version = "2.1.3"
 
 Pod::Spec.new do |s|
   s.name         	  = "DZNPhotoPickerController"
@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
   s.license     	  = { :type => 'MIT', :file => 'LICENSE' }
   s.author       	  = { "lichuanjun" => "lichuanjun1991@gmail.com" }
   
-  s.source       	  = { :git => "https://github.com/lichuanjun/DZNPhotoPickerController.git", :commit => "b8de9916de2c194c7b3bfd872c3cba0c207cab29" }
+  s.source       	  = { :git => "https://github.com/lichuanjun/DZNPhotoPickerController.git", :commit => "12af40d2de8826b0ff7f0b5056f2713d4defaa9f" }
 
   s.default_subspec = 'Core'
   s.resources       = 'Source/Resources/Image/Assets.xcassets'
