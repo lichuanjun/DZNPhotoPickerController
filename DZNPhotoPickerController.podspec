@@ -13,7 +13,7 @@ Pod::Spec.new do |s|
   s.source       	  = { :git => "https://github.com/lichuanjun/DZNPhotoPickerController.git", :commit => "b8de9916de2c194c7b3bfd872c3cba0c207cab29" }
 
   s.default_subspec = 'Core'
-  s.resources       = 'Resources', 'Source/Resources/Image/*'
+  s.resources       = 'Source/Resources/Image/Assets.xcassets'
   s.requires_arc 	  = true
   s.platform        = :ios, '7.0'
 
@@ -38,7 +38,7 @@ Pod::Spec.new do |s|
 
   s.subspec 'Editor' do |ss|
     ss.source_files = 'Source/Classes/Editor/*.{h,m}',
-                      'Source/Resources/Image/*',
+                      'Source/Resources/Image/Assets.xcassets',
                       'Source/Classes/Core/DZNPhotoPickerControllerConstants.{h,m}'
   end
   
