@@ -141,7 +141,7 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
     NSDictionary *views = @{@"bottomView": self.bottomView};
     
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[bottomView]|" options:0 metrics:nil views:views]];
-    [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[bottomView(88)]|" options:0 metrics:nil views:views]];
+    [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[bottomView(88)]-20-|" options:0 metrics:nil views:views]];
     
     [self.view layoutSubviews];
 }
