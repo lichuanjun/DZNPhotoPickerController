@@ -38,8 +38,8 @@ Pod::Spec.new do |s|
 
   s.subspec 'Editor' do |ss|
     ss.source_files = 'Source/Classes/Editor/*.{h,m}',
-                      'Source/Resources/Image/Assets.xcassets',
                       'Source/Classes/Core/DZNPhotoPickerControllerConstants.{h,m}'
+    ss.resources    = 'Source/Resources/Image/Assets.xcassets'
   end
   
 end
